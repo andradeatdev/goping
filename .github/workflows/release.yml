@@ -24,9 +24,10 @@ jobs:
 
       - name: Build
         run: |
-          GOOS=linux GOARCH=amd64 go build -o goping-linux-amd64 ./cmd/goping
-          GOOS=darwin GOARCH=amd64 go build -o goping-darwin-amd64 ./cmd/goping
-          GOOS=windows GOARCH=amd64 go build -o goping-windows-amd64.exe ./cmd/goping
+          mkdir -p dist
+          GOOS=linux GOARCH=amd64 go build -o dist/goping-linux-amd64 ./cmd/goping
+          GOOS=darwin GOARCH=amd64 go build -o dist/goping-darwin-amd64 ./cmd/goping
+          GOOS=windows GOARCH=amd64 go build -o dist/goping-windows-amd64.exe ./cmd/goping
 
       - name: Create Release
         id: create_release
@@ -34,38 +35,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
+          tag_name: ${{ github.ref_name }}
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
 
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
+      - name: Upload Release Assets
+        run: |
+          for f in dist/*; do
+            echo "Uploading $f..."
+            gh release upload ${{ github.ref_name }} "$f" --clobber
+          done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./goping-linux-amd64
-          asset_name: goping-linux-amd64
-          asset_content_type: application/octet-stream
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./goping-darwin-amd64
-          asset_name: goping-darwin-amd64
-          asset_content_type: application/octet-stream
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./goping-windows-amd64.exe
-          asset_name: goping-windows-amd64.exe
-          asset_content_type: application/octet-stream
